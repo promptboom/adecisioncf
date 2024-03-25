@@ -3,18 +3,14 @@ import * as zpbutil from "zpbutil"
 
 
 const productInfo={
-	'product':'powerchat',
+	'product':'adecision',
 	'productContact':'hello@promptboom.com',
 	'productURL':'https://promptboom.com',
 
 	// 免费的：每天聊天3条，文档1个
 	// 付费的（5.99美元）：每天聊天1000条，文档60
 
-	'freeCreditBalance':5,
-	'freeDocBalance':1,
-	
-	'proCreditBalance':600,
-	'proDocBalance':60,
+	'userProjectNum':20,
 }
 
 
@@ -85,7 +81,6 @@ const dbvectorConfigs={
 	}
 }
 
-
 // 上传文件：一个满了，可以切换另外一个
 const fileConfig={
 	'type':'backblazeb2',
@@ -127,20 +122,20 @@ export default {
 			const requestPath = new URL(request.url).pathname
 			const requestHeaders = request.headers
 			
-			// 处理Option请求，需要先进行Option请求处理，否则请求的Header中不能有自定义参数
+			// 1 - 处理Option请求，需要先进行Option请求处理，否则请求的Header中不能有自定义参数
 			if (request.method.toUpperCase() === "OPTIONS") {
 				return zpbutil.options(requestHeaders)
 			}
 
-			// 常规请求是json，webhook请求是text
+			// 2 - 常规请求是json，webhook请求是text
 			let requestJson={}
 
-			// stripe支付成功webhook直接处理
+			// 3 - stripe支付成功webhook直接处理
 			if(requestPath=='/requestSubscribeComplete'){
 				requestJson = await request.text()// raw request body
 			}
 			else{
-				// 合法性检查
+				// 4 - 合法性检查
 				// const requestPathWithoutLogin=['/requestSendVerifyEmail','/requestLogin','/requestPowerChat']
 				// const requestPathWithoutLogin=['/requestSendVerifyEmail','/requestLogin','/requestSendMarketEmail']
 				const requestPathWithoutLogin=['/requestSendVerifyEmail','/requestLogin','/requestSendMarketEmail','/requestPowerChat']
@@ -160,7 +155,7 @@ export default {
 					return zpbutil.getErrorHTMLResponse('common')
 				}
 
-				// 处理正常POST请求，请求参数需要保存在data中并且进行编码处理,webhook很上传图片例外
+				// 5 - 处理正常POST请求，请求参数需要保存在data中并且进行编码处理,webhook很上传图片例外
 				if(requestPath=='/requestUploadFile'){
 					requestJson = await request.formData()
 				}else{
@@ -168,6 +163,8 @@ export default {
 					requestJson = JSON.parse(zpbutil.atou(requestBody['data']));
 				}
 			}
+
+			// 6 - 运行接口并返回response
 			const response = await router.handle(request, requestHeaders, requestJson)
 
 			const newHeaders = {
